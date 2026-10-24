@@ -1,0 +1,16 @@
+{
+  "name": "Registro de consumo",
+  "short_name": "Consumo",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F7F8F0",
+  "theme_color": "#506A00",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

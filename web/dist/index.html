@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#506A00">
+  <meta name="description" content="Registro diario de consumo para Rubén y Saraí.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Registro de consumo</title>
+  <style>
+    :root { --green:#506A00; --lime:#C9D600; --cream:#F7F8F0; --line:#D8DDC9; --ink:#20251D; --muted:#697060; --white:#FFFFFF; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:320px; background:var(--cream); color:var(--ink); font-family:Arial, Helvetica, sans-serif; }
+    button, input { font:inherit; }
+    main { max-width:680px; margin:0 auto; padding:20px 16px 32px; }
+    header { padding:6px 2px 18px; }
+    h1 { margin:0; color:var(--green); font-size:28px; line-height:1.1; }
+    header p { margin:7px 0 0; color:var(--muted); font-size:15px; line-height:1.4; }
+    .card { background:var(--white); border:1px solid var(--line); border-radius:16px; padding:15px; box-shadow:0 2px 9px rgba(37,48,20,.06); }
+    .card + .card { margin-top:14px; }
+    .eyebrow { margin:0 0 8px; color:var(--green); font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+    .person-tabs, .meal-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
+    .person-tabs button, .meal-tabs button { min-height:42px; border:1px solid var(--line); border-radius:12px; padding:0 15px; background:#FAFBF6; color:var(--ink); font-weight:700; white-space:nowrap; }
+    .person-tabs button.active, .meal-tabs button.active { border-color:var(--green); background:var(--green); color:var(--white); }
+    .date-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+    input[type=date] { min-width:0; height:45px; border:1px solid var(--line); border-radius:11px; padding:0 12px; background:#FCFDF9; color:var(--ink); }
+    .outline-button { min-height:45px; border:1px solid #A45331; border-radius:11px; padding:0 12px; background:#FFF8F4; color:#813A1E; font-weight:700; }
+    .summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 15px; background:#EEF3DF; border:1px solid #DCE5C1; border-radius:13px; }
+    .summary strong { color:var(--green); font-size:18px; }
+    .summary span { color:var(--muted); font-size:14px; text-align:right; }
+    .meal-title { display:flex; justify-content:space-between; gap:10px; align-items:baseline; margin:0 0 10px; }
+    .meal-title h2 { margin:0; color:var(--green); font-size:21px; }
+    .meal-title span { color:var(--muted); font-size:13px; }
+    .tracker-list { display:grid; gap:9px; }
+    .entry { display:flex; align-items:center; gap:12px; min-height:70px; padding:10px 12px; background:#FAFBF5; border:1px solid var(--line); border-radius:13px; cursor:pointer; }
+    .entry:has(input:checked) { background:#EAF2D4; border-color:#A5B96D; }
+    .entry input { width:24px; height:24px; accent-color:var(--green); flex:0 0 auto; }
+    .code { min-width:56px; padding:5px 6px; border-radius:8px; background:var(--lime); color:#263000; font-size:12px; font-weight:700; text-align:center; }
+    .entry-copy { min-width:0; flex:1; }
+    .entry-copy strong { display:block; font-size:16px; }
+    .entry-copy small { color:var(--muted); font-size:13px; }
+    .portion { color:var(--green); font-size:18px; font-weight:700; white-space:nowrap; }
+    .hint { margin:12px 2px 0; color:var(--muted); font-size:13px; line-height:1.4; }
+    .install { display:none; width:100%; min-height:45px; margin-top:14px; border:0; border-radius:11px; background:var(--lime); color:#263000; font-weight:700; }
+    @media (max-width:390px) { h1 { font-size:25px; } .entry { gap:9px; padding:9px; } .code { min-width:49px; font-size:11px; } .entry-copy strong { font-size:15px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Registro de consumo</h1>
+      <p>Marca cada porción conforme la consumas. Se guarda en este teléfono y por fecha.</p>
+    </header>
+
+    <section class="card">
+      <p class="eyebrow">Plan</p>
+      <div class="person-tabs" id="person-tabs"></div>
+    </section>
+
+    <section class="card">
+      <p class="eyebrow">Día</p>
+      <div class="date-row">
+        <input id="date-input" type="date" aria-label="Selecciona el día">
+        <button class="outline-button" id="reset-button" type="button">Reiniciar</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <p class="eyebrow">Comida</p>
+      <div class="meal-tabs" id="meal-tabs"></div>
+    </section>
+
+    <section class="card">
+      <div class="summary"><strong id="summary-count">0 de 0</strong><span>porciones marcadas en este día</span></div>
+      <div class="meal-title"><h2 id="meal-title"></h2><span>Marca al terminar</span></div>
+      <div class="tracker-list" id="tracker-list"></div>
+      <p class="hint">Puedes cambiar de fecha para consultar o iniciar otro día. Las marcas no se envían a ningún servidor.</p>
+    </section>
+    <button class="install" id="install-button" type="button">Agregar a pantalla de inicio</button>
+  </main>
+
+  <script>
+    const plans = {
+      ruben: {
+        label: 'Rubén',
+        meals: ['Desayuno', 'Almuerzo', 'Comida', 'Cena', 'Colación'],
+        groups: [
+          ['FR', 'Frutas', ['1', '', '', '', '1']],
+          ['VD', 'Verduras', ['', '1', '1', '1', '1']],
+          ['CSG', 'Cereales sin grasa', ['', '2', '2', '2', '1']],
+          ['AOA BG', 'AOA bajos en grasa', ['', '2', '5', '5', '']],
+          ['AOA AG', 'AOA altos en grasa', ['', '2', '', '', '']],
+          ['GR', 'Grasas', ['', '1', '2', '1', '']],
+          ['GCP', 'Grasas con proteína', ['1', '', '', '', '1']]
+        ]
+      },
+      sarai: {
+        label: 'Saraí',
+        meals: ['Almuerzo', 'Colación matutina', 'Comida', 'Colación vespertina', 'Cena'],
+        groups: [
+          ['FR', 'Frutas', ['', '1', '', '1', '']],
+          ['VD', 'Verduras', ['1', '', '1', '', '1']],
+          ['CSG', 'Cereales sin grasa', ['2', '1', '2', '1', '2']],
+          ['AOA BG', 'AOA bajos en grasa', ['', '', '3', '', '3']],
+          ['AOA AG', 'AOA altos en grasa', ['2', '', '', '', '']],
+          ['LBG', 'Lácteos bajos en grasa', ['0.5', '', '', '1', '']],
+          ['GR', 'Grasas', ['2', '', '2', '', '2']],
+          ['GCP', 'Grasas con proteína', ['', '1', '', '1', '']]
+        ]
+      }
+    };
+
+    const state = { person: 'ruben', mealIndex: 0, date: localDate() };
+    const personTabs = document.querySelector('#person-tabs');
+    const mealTabs = document.querySelector('#meal-tabs');
+    const dateInput = document.querySelector('#date-input');
+    const trackerList = document.querySelector('#tracker-list');
+    const mealTitle = document.querySelector('#meal-title');
+    const summaryCount = document.querySelector('#summary-count');
+    const resetButton = document.querySelector('#reset-button');
+    const installButton = document.querySelector('#install-button');
+
+    function localDate() {
+      const today = new Date();
+      const offset = today.getTimezoneOffset() * 60000;
+      return new Date(today.getTime() - offset).toISOString().slice(0, 10);
+    }
+
+    function keyFor(mealIndex, code) {
+      return `registro-consumo:${state.person}:${state.date}:${mealIndex}:${code}`;
+    }
+
+    function isMarked(mealIndex, code) {
+      return localStorage.getItem(keyFor(mealIndex, code)) === 'true';
+    }
+
+    function saveMarked(mealIndex, code, checked) {
+      const key = keyFor(mealIndex, code);
+      if (checked) localStorage.setItem(key, 'true');
+      else localStorage.removeItem(key);
+      updateSummary();
+    }
+
+    function activePlan() {
+      return plans[state.person];
+    }
+
+    function portionGroups(mealIndex) {
+      return activePlan().groups.filter((group) => group[2][mealIndex]);
+    }
+
+    function render() {
+      dateInput.value = state.date;
+      personTabs.innerHTML = '';
+      Object.entries(plans).forEach(([id, plan]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = plan.label;
+        button.className = id === state.person ? 'active' : '';
+        button.addEventListener('click', () => { state.person = id; state.mealIndex = 0; render(); });
+        personTabs.appendChild(button);
+      });
+
+      mealTabs.innerHTML = '';
+      activePlan().meals.forEach((meal, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = meal;
+        button.className = index === state.mealIndex ? 'active' : '';
+        button.addEventListener('click', () => { state.mealIndex = index; render(); });
+        mealTabs.appendChild(button);
+      });
+
+      mealTitle.textContent = activePlan().meals[state.mealIndex];
+      trackerList.innerHTML = '';
+      portionGroups(state.mealIndex).forEach(([code, name, portions]) => {
+        const portion = portions[state.mealIndex];
+        const label = document.createElement('label');
+        label.className = 'entry';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = isMarked(state.mealIndex, code);
+        checkbox.addEventListener('change', () => saveMarked(state.mealIndex, code, checkbox.checked));
+        const codeLabel = document.createElement('span');
+        codeLabel.className = 'code';
+        codeLabel.textContent = code;
+        const copy = document.createElement('span');
+        copy.className = 'entry-copy';
+        copy.innerHTML = `<strong>${name}</strong><small>Grupo de alimento</small>`;
+        const amount = document.createElement('span');
+        amount.className = 'portion';
+        amount.textContent = `${portion} ${portion === '1' ? 'porción' : 'porciones'}`;
+        label.append(checkbox, codeLabel, copy, amount);
+        trackerList.appendChild(label);
+      });
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const allItems = activePlan().groups.flatMap(([code, name, portions]) => portions
+        .map((portion, mealIndex) => portion ? { code, mealIndex } : null)
+        .filter(Boolean));
+      const markedItems = allItems.filter(({ code, mealIndex }) => isMarked(mealIndex, code));
+      summaryCount.textContent = `${markedItems.length} de ${allItems.length}`;
+    }
+
+    dateInput.addEventListener('change', () => { state.date = dateInput.value || localDate(); render(); });
+    resetButton.addEventListener('click', () => {
+      if (!confirm(`¿Reiniciar todas las marcas de ${activePlan().label} para este día?`)) return;
+      activePlan().groups.forEach(([code, name, portions]) => portions.forEach((portion, mealIndex) => {
+        if (portion) localStorage.removeItem(keyFor(mealIndex, code));
+      }));
+      render();
+    });
+
+    let deferredInstallPrompt;
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      installButton.style.display = 'block';
+    });
+    installButton.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installButton.style.display = 'none';
+    });
+    window.addEventListener('appinstalled', () => { installButton.style.display = 'none'; });
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    render();
+  </script>
+<script src="app.js?v=16"></script>
+</body>
+</html>
