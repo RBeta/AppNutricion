@@ -1,5 +1,5 @@
 const cacheName = 'registro-consumo-v17';
-const files = ['./', './index.html', './app.js?v=16', './manifest.webmanifest', './icon.svg'];
+const files = ['./', './index.html', './app.js?v=17', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(cacheName).then((cache) => cache.addAll(files)).then(() => self.skipWaiting()));
