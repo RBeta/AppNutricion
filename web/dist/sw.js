@@ -1,4 +1,4 @@
-const cacheName = 'registro-consumo-v16';
+const cacheName = 'registro-consumo-v17';
 const files = ['./', './index.html', './app.js?v=16', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (event) => {
